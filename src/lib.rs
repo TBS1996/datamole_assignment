@@ -1,5 +1,3 @@
-#![no_std]
-
 use core::ops::Div;
 use rand::rngs::SmallRng;
 use rand::Rng;
@@ -206,12 +204,6 @@ mod tests {
         assert_eq!(stats.mean(), 2.0); // (1+2+3)/3
     }
 
-    #[test]
-    fn test_standard_deviation() {
-        let mut stats = RollingStats::<3>::new_big_endian();
-        stats.extend(&[0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3]);
-    }
-
     #[cfg(feature = "std")]
     #[test]
     fn test_standard_deviation() {
@@ -239,11 +231,10 @@ mod tests {
     fn test_write() {
         use std::io::Write;
 
-        let mut stats = RollingStats::<0>::new_big_endian();
+        let mut stats = RollingStats::<3>::new_big_endian();
         assert!(stats
             .write(&[0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4])
             .is_ok());
-        let x = stats.mean();
         assert_eq!(stats.mean(), 3.0);
     }
 }

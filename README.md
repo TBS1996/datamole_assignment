@@ -11,3 +11,4 @@ features:
 - Supports both little and big endian representation of i32. 
 - Buffer that keeps track of incomplete i32 values. 
 - No heap-allocations.
+- Compile-time assert that the window is non-zero.
