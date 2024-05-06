@@ -60,7 +60,7 @@ impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
 
     /// Calculates a sample based on the standard deviation and mean of the dataset
     /// using the box-mueller trarnsform.
-    pub fn std_sample(&self) -> f32 {
+    pub fn sd_sample(&self) -> f32 {
         let mean = self.mean() as f64;
         let std_dev = self.standard_deviation() as f64;
         let pi = 3.14159265358979323846264338327950288_f64;
