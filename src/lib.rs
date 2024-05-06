@@ -12,28 +12,34 @@ enum Endian {
 
 const I32_SIZE: usize = (i32::BITS / 8) as usize;
 
+/// Keeps tracks of values within a rolling window and can perform statistical operations on them.
 pub struct RollingStats<const WINDOW_SIZE: usize> {
+    // The rolling window.
     data: [i32; WINDOW_SIZE],
+    // the current index of the rolling window.
     index: usize,
+    // Keeps track of an incomplete i32-value.
     buffer: Buffer,
+    // Ensures we don't use uninitialized values in the window for statistical operations.
     window_filled: bool,
 }
 
 impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
     const ASSERT: () = assert!(WINDOW_SIZE != 0, "Window-size must be non-zero");
 
+    /// Creates a new instance of [`RollingStats`] where bytes are represented as big-endian.
     pub fn new_big_endian() -> Self {
-        let _ = Self::ASSERT;
         Self::new(Endian::Big)
     }
 
+    /// Creates a new instance of [`RollingStats`] where bytes are represented as small-endian.
     pub fn new_little_endian() -> Self {
-        let _ = Self::ASSERT;
         Self::new(Endian::Little)
     }
 
     /// Creates a new instance of [`RollingStats`].
     fn new(endian: Endian) -> Self {
+        let _ = Self::ASSERT;
         Self {
             data: [0; WINDOW_SIZE],
             index: 0,
@@ -49,9 +55,14 @@ impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
         }
     }
 
+    /// Clears the buffer.
+    pub fn clear_buffer(&mut self) {
+        self.buffer.index = 0;
+    }
+
     /// Calculates a sample based on the standard deviation and mean of the dataset
     /// using the box-mueller trarnsform.
-    pub fn std_sample(&self) -> f64 {
+    pub fn std_sample(&self) -> f32 {
         let mean = self.mean() as f64;
         let std_dev = self.standard_deviation() as f64;
         let pi = 3.14159265358979323846264338327950288_f64;
@@ -60,10 +71,11 @@ impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
         let u1: f64 = rng.gen::<f64>().max(1e-10);
         let u2: f64 = rng.gen::<f64>();
         let z0 = libm::sqrt(-2.0 * libm::log(u1)) * libm::cos(2.0 * pi * u2);
-        mean + z0 * std_dev
+        (mean + z0 * std_dev) as f32
     }
 
-    pub fn standard_deviation(&self) -> f64 {
+    /// Calculates the standard deviation of the values within the current window of [`RollingStats`].
+    pub fn standard_deviation(&self) -> f32 {
         let mean = self.mean();
         let len = self.data().len();
 
@@ -81,9 +93,10 @@ impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
             .sum::<f64>()
             .div(len as f64);
 
-        libm::sqrt(variation)
+        libm::sqrt(variation) as f32
     }
 
+    /// Calculates the current mean of the values within the current window.
     pub fn mean(&self) -> f32 {
         if self.data().len() == 0 {
             return 0.;
@@ -91,6 +104,7 @@ impl<const WINDOW_SIZE: usize> RollingStats<WINDOW_SIZE> {
         self.data().iter().sum::<i32>() as f32 / self.data().len() as f32
     }
 
+    /// Pushes the bytes into the rolling window.
     pub fn extend(&mut self, bytes: &[u8]) {
         let max_accom = WINDOW_SIZE * I32_SIZE - self.buffer.index();
         let start_index = bytes.len().saturating_sub(max_accom);
